@@ -1,0 +1,286 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f70eac32-0230-47d6-b8d1-cb034bb64eb5",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UbsAsetX7UjWQJkr",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an intelligent email assistant.\n\nAnalyze the following email and determine whether it contains a meeting invitation.\n\nEmail Subject:\n{{ $json.subject }}\n\nEmail Body:\n{{ $json.snippet }}\n\nIf the email contains a meeting, extract the following information.\n\nReturn ONLY valid JSON in this exact format:\n\n{\n  \"title\": \"Meeting Title\",\n  \"startDateTime\": \"2026-07-12T15:00:00+05:30\",\n  \"endDateTime\": \"2026-07-12T16:00:00+05:30\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"meetingLink\": \"https://meet.google.com/abc-xyz\",\n  \"summary\": \"Short description of the meeting\",\n  \"participants\": [\n    \"Participant 1\",\n    \"Participant 2\"\n  ],\n  \"organizer\": \"Organizer Name\",\n  \"isMeeting\": true\n}\n\nInstructions:\n- Read the email carefully.\n- If a meeting date and time are mentioned, convert them into ISO 8601 format.\n- If the email uses IST, convert it to Asia/Kolkata (+05:30).\n- Set endDateTime to one hour after startDateTime unless another duration is specified.\n- Extract the Google Meet, Zoom, Teams or any meeting link if available.\n- Extract all participant names if mentioned.\n- Extract the organizer name if available.\n- Generate a short summary of the meeting.\n- Set \"isMeeting\" to true only if the email is actually about a meeting; otherwise set it to false.\n- Return ONLY valid JSON.\n- Do not include markdown, explanations, or any extra text.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9139c52f-8095-49da-94e0-df4be0c87e83",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "sunidhichahal03@gmail.com",
+          "mode": "list",
+          "cachedResultName": "sunidhichahal03@gmail.com"
+        },
+        "start": "={{ $json.output.startDateTime }}",
+        "end": "={{ $json.output.endDateTime }}",
+        "additionalFields": {
+          "description": "={{ $json.output.summary }}",
+          "location": "={{ $json.output.meetingLink }}",
+          "summary": "={{ $json.output.title }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        -16
+      ],
+      "id": "f5e29281-eac1-4426-944c-22f519a31591",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0DLeRvexeSSryKIF",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"title\": \"Meeting Title\",\n  \"startDateTime\": \"2026-07-12T15:00:00+05:30\",\n  \"endDateTime\": \"2026-07-12T16:00:00+05:30\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"meetingLink\": \"https://meet.google.com/abc-xyz\",\n  \"summary\": \"Short description\",\n  \"participants\": [\n    \"Participant 1\"\n  ],\n  \"organizer\": \"Organizer Name\",\n  \"isMeeting\": true\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        192
+      ],
+      "id": "50f7b698-3a0b-4c9b-b3d7-6b7e79325347",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "35a94ba0-4e4e-41b0-a3d4-048c65a4fee8",
+              "leftValue": "={{ $json.output.isMeeting }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        0
+      ],
+      "id": "975090e3-d521-4fd7-b182-d62179ed4d4d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        208
+      ],
+      "id": "81ffdbe4-f837-4ce0-9492-026981ee7bae",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Qe7lZ538l3SdySFE",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_7663182295980483604"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        -16
+      ],
+      "id": "3d23d754-8dab-4e45-a8f6-838ea78491c4",
+      "name": "Add label to message",
+      "webhookId": "d2da4151-d777-4c67-b565-13d09ad771b8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UbsAsetX7UjWQJkr",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_5717632207806074825"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        208
+      ],
+      "id": "5edbf7dd-476e-4be5-a84b-0d3dbfb735f9",
+      "name": "Add label to message1",
+      "webhookId": "c32fbb10-713b-46d0-b94b-db63ed8f259e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "UbsAsetX7UjWQJkr",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d7bdffbd-f0ef-4639-9c6d-33ee73937892",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d7017a55bd9b5e7d9b58331fceb387b4cef39c7880e3a26995285b8f5e04069e"
+  },
+  "nodeGroups": [],
+  "id": "d2aQdR9xFs4D8jKF",
+  "tags": []
+}
